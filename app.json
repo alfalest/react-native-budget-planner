@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Anti Boncos",
+    "slug": "money-planner",
+    "version": "1.0.0",
+    "icon": "./src/image/logo.png",
+    "extra": {
+      "eas": {
+        "projectId": "555a97e0-f257-4144-b14b-031d0423ae5d"
+      }
+    },
+    "android": {
+      "package": "com.alfalest.moneyplanner"
+    },
+    "splash": {
+      "image": "./src/image/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#121212"
+    }
+  }
+}
