@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { 
   StyleSheet, 
@@ -28,6 +29,13 @@ export const MonthlyPlanningScreen = () => {
   const currentRealMonth = getCurrentMonth();
   const [selectedMonth, setSelectedMonth] = useState(currentRealMonth);
   const activePlan = monthlyPlans.find((p) => p.month === selectedMonth);
+
+  // Automatically switch to current month when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      setSelectedMonth(getCurrentMonth());
+    }, [])
+  );
 
   // Generate 5 months (-2, -1, 0, 1, 2) relative to currentRealMonth
   const availableMonths = useMemo(() => {

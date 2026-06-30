@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Anti Boncos",
+    "name": "Anti Boncos by Adib",
     "slug": "money-planner",
     "version": "1.0.0",
     "icon": "./src/image/logo.png",
@@ -16,6 +16,12 @@
       "image": "./src/image/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#121212"
+    },
+    "ios": {
+      "bundleIdentifier": "com.alfalest.moneyplanner",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     }
   }
 }

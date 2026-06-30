@@ -11,7 +11,6 @@ import { MonthlyPlanningScreen } from '../screens/MonthlyPlanningScreen';
 import { WeeklyPlanningScreen } from '../screens/WeeklyPlanningScreen';
 import { SimulationScreen } from '../screens/SimulationScreen';
 import { GoalsScreen } from '../screens/GoalsScreen';
-import { InsightsScreen } from '../screens/InsightsScreen';
 import { CalendarScreen } from '../screens/CalendarScreen';
 import { BackupRestoreScreen } from '../screens/BackupRestoreScreen';
 
@@ -42,7 +41,6 @@ const TabBarIcon = ({ label, focused }: { label: string; focused: boolean }) => 
       case 'Weekly': return '🗓️';
       case 'Simulate': return '⚡';
       case 'Goals': return '🎯';
-      case 'Insights': return '💡';
       case 'Calendar': return '📆';
       default: return '🪙';
     }
@@ -77,12 +75,11 @@ const TabNavigator = () => {
         headerShadowVisible: false,
       })}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Anti Boncos' }} />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Anti Boncos by Adib' }} />
       <Tab.Screen name="MonthlyPlan" component={MonthlyPlanningScreen} options={{ title: 'Plan Bulanan' }} />
       <Tab.Screen name="WeeklyPlan" component={WeeklyPlanningScreen} options={{ title: 'Plan Mingguan' }} />
       <Tab.Screen name="Simulation" component={SimulationScreen} options={{ title: 'Simulasi' }} />
       <Tab.Screen name="Goals" component={GoalsScreen} options={{ title: 'Target Nabung' }} />
-      <Tab.Screen name="Insights" component={InsightsScreen} options={{ title: 'Insight Keuangan' }} />
       <Tab.Screen name="Calendar" component={CalendarScreen} options={{ title: 'Kalender' }} />
     </Tab.Navigator>
   );

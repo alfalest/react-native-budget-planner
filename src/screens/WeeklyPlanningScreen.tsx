@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { 
   StyleSheet, 
@@ -34,6 +35,13 @@ export const WeeklyPlanningScreen = () => {
   const [newCategoryName, setNewCategoryName] = useState<string>('');
   const [newAmountInput, setNewAmountInput] = useState<string>('');
   const [newNotesInput, setNewNotesInput] = useState<string>('');
+
+  // Automatically switch to current week when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      setCurrentWeek(getCurrentWeekRange());
+    }, [])
+  );
 
   // Load existing plan data
   useEffect(() => {

@@ -12,6 +12,5 @@ export type TabParamList = {
   WeeklyPlan: undefined;
   Simulation: undefined;
   Goals: undefined;
-  Insights: undefined;
   Calendar: undefined;
 };

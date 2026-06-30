@@ -11,15 +11,30 @@ export const getCurrentMonth = (): string => {
 };
 
 /**
- * Gets the current ISO week bounds (Monday to Sunday)
+ * Gets the current week bounds based on day of month:
+ * Week 1: 1-7
+ * Week 2: 8-14
+ * Week 3: 15-21
+ * Week 4: 22-end of month
  */
+export const getWeekRangeForDate = (dateParam: dayjs.Dayjs | string = dayjs()): { startDate: string; endDate: string } => {
+  const date = dayjs(dateParam);
+  const dayOfMonth = date.date();
+  const yearMonth = date.format('YYYY-MM');
+  
+  if (dayOfMonth <= 7) {
+    return { startDate: `${yearMonth}-01`, endDate: `${yearMonth}-07` };
+  } else if (dayOfMonth <= 14) {
+    return { startDate: `${yearMonth}-08`, endDate: `${yearMonth}-14` };
+  } else if (dayOfMonth <= 21) {
+    return { startDate: `${yearMonth}-15`, endDate: `${yearMonth}-21` };
+  } else {
+    return { startDate: `${yearMonth}-22`, endDate: date.endOf('month').format('YYYY-MM-DD') };
+  }
+};
+
 export const getCurrentWeekRange = (): { startDate: string; endDate: string } => {
-  const start = dayjs().startOf('isoWeek');
-  const end = dayjs().endOf('isoWeek');
-  return {
-    startDate: start.format('YYYY-MM-DD'),
-    endDate: end.format('YYYY-MM-DD'),
-  };
+  return getWeekRangeForDate();
 };
 
 /**

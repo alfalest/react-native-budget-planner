@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { useBudgetStore } from '../store/budgetStore';
@@ -13,9 +14,16 @@ import { getCurrentMonth, getCurrentWeekRange, formatDateRange, formatMonthYear 
 export const DashboardScreen = ({ navigation }: any) => {
   const { monthlyPlans, weeklyPlans, installments } = useBudgetStore();
 
-  // Find active plans
-  const currentMonth = getCurrentMonth();
-  const currentWeek = getCurrentWeekRange();
+  // Keep state so the Dashboard updates when date rolls over while app is open
+  const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
+  const [currentWeek, setCurrentWeek] = useState(getCurrentWeekRange());
+
+  useFocusEffect(
+    useCallback(() => {
+      setCurrentMonth(getCurrentMonth());
+      setCurrentWeek(getCurrentWeekRange());
+    }, [])
+  );
 
   const activeMonthlyPlan = monthlyPlans.find((p) => p.month === currentMonth);
   const activeWeeklyPlan = weeklyPlans.find((p) => p.startDate === currentWeek.startDate);
@@ -84,7 +92,7 @@ export const DashboardScreen = ({ navigation }: any) => {
       <View style={styles.header}>
         <View>
           <Text style={[typography.bodySmall, { color: colors.textSecondary }]}>HALO BOSKU!</Text>
-          <Text style={[typography.h2, typography.weightBold, { color: colors.textPrimary }]}>Anti Boncos</Text>
+          <Text style={[typography.h2, typography.weightBold, { color: colors.textPrimary }]}>Anti Boncos by Adib</Text>
           <Text style={[typography.caption, { color: colors.textSecondary, marginTop: 2 }]}>Atur gajian biar gak cuma lewat</Text>
         </View>
         <Button 
