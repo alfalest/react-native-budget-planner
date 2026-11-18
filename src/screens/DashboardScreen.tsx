@@ -9,7 +9,7 @@ import { Card } from '../components/Card';
 import { ProgressBar } from '../components/ProgressBar';
 import { Button } from '../components/Button';
 import { formatRupiah } from '../utils/currency';
-import { getCurrentMonth, getCurrentWeekRange, formatDateRange, formatMonthYear } from '../utils/date';
+import { getCurrentMonth, getCurrentWeekRange, formatDateRange, formatMonthYear, getWeekDaysCount } from '../utils/date';
 
 export const DashboardScreen = ({ navigation }: any) => {
   const { monthlyPlans, weeklyPlans, installments } = useBudgetStore();
@@ -17,16 +17,20 @@ export const DashboardScreen = ({ navigation }: any) => {
   // Keep state so the Dashboard updates when date rolls over while app is open
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
   const [currentWeek, setCurrentWeek] = useState(getCurrentWeekRange());
+  const [todayStr, setTodayStr] = useState(dayjs().format('YYYY-MM-DD'));
 
   useFocusEffect(
     useCallback(() => {
       setCurrentMonth(getCurrentMonth());
       setCurrentWeek(getCurrentWeekRange());
+      setTodayStr(dayjs().format('YYYY-MM-DD'));
     }, [])
   );
 
   const activeMonthlyPlan = monthlyPlans.find((p) => p.month === currentMonth);
-  const activeWeeklyPlan = weeklyPlans.find((p) => p.startDate === currentWeek.startDate);
+  const activeWeeklyPlan =
+    weeklyPlans.find((p) => p.startDate === currentWeek.startDate) ||
+    weeklyPlans.find((p) => p.startDate <= todayStr && p.endDate >= todayStr);
 
   const activeInstallments = installments.filter(
     (inst) => inst.startMonth <= currentMonth && inst.endMonth >= currentMonth
@@ -82,10 +86,14 @@ export const DashboardScreen = ({ navigation }: any) => {
   }
 
   // Compute Weekly Statistics
+  const wStart = activeWeeklyPlan?.startDate || currentWeek.startDate;
+  const wEnd = activeWeeklyPlan?.endDate || currentWeek.endDate;
+  const wDaysCount = getWeekDaysCount(wStart, wEnd);
   const wIncome = activeWeeklyPlan?.income || 0;
   const wAllocated = activeWeeklyPlan?.expenses.reduce((sum, e) => sum + e.plannedAmount, 0) || 0;
   const wRemaining = wIncome - wAllocated;
   const wProgress = wIncome > 0 ? wAllocated / wIncome : 0;
+  const wDailySafe = wDaysCount > 0 ? Math.floor(wIncome / wDaysCount) : 0;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -164,17 +172,17 @@ export const DashboardScreen = ({ navigation }: any) => {
           <Text style={[typography.bodyLarge, typography.weightBold, { color: colors.info }]}>
             Jatah Mingguan
           </Text>
-          <Text style={[typography.caption, { color: colors.textSecondary }]}>MINGGUAN</Text>
+          <Text style={[typography.caption, { color: colors.textSecondary }]}>MINGGUAN ({wDaysCount} HARI)</Text>
         </View>
         <Text style={[typography.caption, { color: colors.textMuted, marginBottom: 12 }]}>
-          {formatDateRange(currentWeek.startDate, currentWeek.endDate)}
+          {formatDateRange(wStart, wEnd)}
         </Text>
 
         {activeWeeklyPlan ? (
           <View>
             <View style={styles.statRow}>
               <View>
-                <Text style={[typography.bodySmall, { color: colors.textSecondary }]}>Masukan Mingguan</Text>
+                <Text style={[typography.bodySmall, { color: colors.textSecondary }]}>Jatah Minggu Ini</Text>
                 <Text style={[typography.h3, typography.weightBold, { color: colors.textPrimary }]}>
                   {formatRupiah(wIncome)}
                 </Text>
@@ -190,7 +198,12 @@ export const DashboardScreen = ({ navigation }: any) => {
             <ProgressBar progress={wProgress} color={colors.info} showPercentage />
 
             <View style={styles.remainingRow}>
-              <Text style={[typography.bodyMedium, { color: colors.textSecondary }]}>Sisa Uang:</Text>
+              <View>
+                <Text style={[typography.bodyMedium, { color: colors.textSecondary }]}>Sisa Jatah:</Text>
+                <Text style={[typography.caption, { color: colors.textMuted, marginTop: 2 }]}>
+                  🛡️ Batas aman ≈ {formatRupiah(wDailySafe)} / hari
+                </Text>
+              </View>
               <Text
                 style={[
                   typography.bodyLarge,

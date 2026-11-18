@@ -1,14 +1,35 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import React, { useMemo } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useBudgetStore } from '../store/budgetStore';
 import { colors } from '../constants/colors';
 import { typography } from '../constants/typography';
 import { Card } from '../components/Card';
-import { formatMonthYear, formatDateRange, formatReadableDate, getDaysRemaining } from '../utils/date';
+import { formatMonthYear, formatDateRange, formatReadableDate, getDaysRemaining, getWeekDaysCount } from '../utils/date';
 import { formatRupiah } from '../utils/currency';
 
 export const CalendarScreen = () => {
-  const { monthlyPlans, weeklyPlans, goals } = useBudgetStore();
+  const { monthlyPlans, weeklyPlans, goals, deleteWeeklyPlan } = useBudgetStore();
+
+  const sortedMonthlyPlans = useMemo(
+    () => [...monthlyPlans].sort((a, b) => b.month.localeCompare(a.month)),
+    [monthlyPlans]
+  );
+
+  const sortedWeeklyPlans = useMemo(
+    () => [...weeklyPlans].sort((a, b) => b.startDate.localeCompare(a.startDate)),
+    [weeklyPlans]
+  );
+
+  const handleConfirmDeleteWeekly = (id: string, rangeLabel: string) => {
+    Alert.alert(
+      'Hapus Plan Mingguan?',
+      `Yakin mau hapus plan periode ${rangeLabel}?`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        { text: 'Hapus', style: 'destructive', onPress: () => deleteWeeklyPlan(id) },
+      ]
+    );
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -22,10 +43,10 @@ export const CalendarScreen = () => {
       {/* SECTION: MONTHLY HORIZONS */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>📅 Plan Bulanan</Text>
-        {monthlyPlans.length === 0 ? (
+        {sortedMonthlyPlans.length === 0 ? (
           <Text style={styles.emptyText}>Belum ada plan bulanan.</Text>
         ) : (
-          monthlyPlans.map((plan) => {
+          sortedMonthlyPlans.map((plan) => {
             const spent = plan.expenses.reduce((sum, e) => sum + e.plannedAmount, 0);
             return (
               <Card key={plan.id} variant="flat" style={styles.eventCard}>
@@ -47,23 +68,31 @@ export const CalendarScreen = () => {
       {/* SECTION: WEEKLY CYCLES */}
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>🗓️ Plan Mingguan</Text>
-        {weeklyPlans.length === 0 ? (
+        {sortedWeeklyPlans.length === 0 ? (
           <Text style={styles.emptyText}>Belum ada plan mingguan.</Text>
         ) : (
-          weeklyPlans.map((plan) => {
+          sortedWeeklyPlans.map((plan) => {
             const spent = plan.expenses.reduce((sum, e) => sum + e.plannedAmount, 0);
+            const daysCount = getWeekDaysCount(plan.startDate, plan.endDate);
+            const dailySafe = daysCount > 0 ? Math.floor(plan.income / daysCount) : 0;
+            const rangeLabel = formatDateRange(plan.startDate, plan.endDate);
             return (
               <Card key={plan.id} variant="flat" style={styles.eventCard}>
                 <View style={[styles.colorIndicator, { backgroundColor: colors.info }]} />
                 <View style={styles.eventContent}>
-                  <Text style={[typography.bodyLarge, typography.weightBold, { color: colors.textPrimary }]}>
-                    Jatah Mingguan
-                  </Text>
+                  <View style={styles.eventHeaderRow}>
+                    <Text style={[typography.bodyLarge, typography.weightBold, { color: colors.textPrimary }]}>
+                      {rangeLabel} ({daysCount} hari)
+                    </Text>
+                    <TouchableOpacity onPress={() => handleConfirmDeleteWeekly(plan.id, rangeLabel)}>
+                      <Text style={{ color: colors.error, fontSize: 12, fontWeight: '700' }}>Hapus ❌</Text>
+                    </TouchableOpacity>
+                  </View>
                   <Text style={[typography.bodySmall, { color: colors.textSecondary, marginTop: 4 }]}>
-                    Siklus: {formatDateRange(plan.startDate, plan.endDate)}
+                    Jatah: {formatRupiah(plan.income)} | Diplot: {formatRupiah(spent)}
                   </Text>
-                  <Text style={[typography.bodySmall, { color: colors.textSecondary, marginTop: 2 }]}>
-                    Masuk: {formatRupiah(plan.income)} | Diplot: {formatRupiah(spent)}
+                  <Text style={[typography.caption, { color: colors.primaryLight, marginTop: 2 }]}>
+                    🛡️ Batas aman ≈ {formatRupiah(dailySafe)} / hari
                   </Text>
                 </View>
               </Card>
@@ -132,7 +161,12 @@ const styles = StyleSheet.create({
     padding: 0,
     overflow: 'hidden',
     marginBottom: 10,
-    height: 90,
+    minHeight: 90,
+  },
+  eventHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   colorIndicator: {
     width: 6,
