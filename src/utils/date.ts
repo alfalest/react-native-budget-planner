@@ -37,7 +37,8 @@ export const getWeekDaysCount = (startStr: string, endStr: string): number => {
  * Minggu 4: 22 - end of month (7 to 10 days)
  */
 export const getWeeksForMonth = (monthStr: string = getCurrentMonth()): WeekCycleInfo[] => {
-  const base = dayjs(`${monthStr}-01`);
+  const parsed = dayjs(`${monthStr}-01`);
+  const base = parsed.isValid() ? parsed : dayjs(`${getCurrentMonth()}-01`);
   const yearMonth = base.format('YYYY-MM');
   const endOfMonth = base.endOf('month').format('YYYY-MM-DD');
 
@@ -58,7 +59,8 @@ export const getWeeksForMonth = (monthStr: string = getCurrentMonth()): WeekCycl
  * Gets the total number of days in a given month ('YYYY-MM')
  */
 export const getDaysInMonth = (monthStr: string = getCurrentMonth()): number => {
-  return dayjs(`${monthStr}-01`).daysInMonth();
+  const parsed = dayjs(`${monthStr}-01`);
+  return parsed.isValid() ? parsed.daysInMonth() : 30;
 };
 
 /**

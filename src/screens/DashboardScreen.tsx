@@ -12,7 +12,7 @@ import { formatRupiah } from '../utils/currency';
 import { getCurrentMonth, getCurrentWeekRange, formatDateRange, formatMonthYear, getWeekDaysCount } from '../utils/date';
 
 export const DashboardScreen = ({ navigation }: any) => {
-  const { monthlyPlans, weeklyPlans, installments } = useBudgetStore();
+  const { monthlyPlans, weeklyPlans, installments, digitalWallets } = useBudgetStore();
 
   // Keep state so the Dashboard updates when date rolls over while app is open
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
@@ -94,6 +94,26 @@ export const DashboardScreen = ({ navigation }: any) => {
   const wRemaining = wIncome - wAllocated;
   const wProgress = wIncome > 0 ? wAllocated / wIncome : 0;
   const wDailySafe = wDaysCount > 0 ? Math.floor(wIncome / wDaysCount) : 0;
+
+  // Compute Digital Wallets Statistics
+  const safeWallets = Array.isArray(digitalWallets) ? digitalWallets : [];
+  const totalWalletBalance = safeWallets.reduce((sum, w) => {
+    const base = Number(w.balance) || 0;
+    const incTotal = Array.isArray(w.incomes)
+      ? w.incomes.reduce((s, i) => s + (Number(i.amount) || 0), 0)
+      : 0;
+    return sum + base + incTotal;
+  }, 0);
+  const totalWalletSpent = safeWallets.reduce(
+    (sum, w) =>
+      sum +
+      (Array.isArray(w.expenses)
+        ? w.expenses.reduce((s, e) => s + (Number(e.plannedAmount) || 0), 0)
+        : 0),
+    0
+  );
+  const totalWalletRemaining = totalWalletBalance - totalWalletSpent;
+  const walletProgress = totalWalletBalance > 0 ? totalWalletSpent / totalWalletBalance : 0;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -223,6 +243,61 @@ export const DashboardScreen = ({ navigation }: any) => {
             <Button
               title="Bikin Plan Mingguan"
               onPress={() => navigation.navigate('WeeklyPlan')}
+              variant="secondary"
+            />
+          </View>
+        )}
+      </Card>
+
+      {/* DIGITAL WALLET SUMMARY CARD */}
+      <Card variant="elevated" style={styles.planCard}>
+        <View style={styles.cardHeader}>
+          <Text style={[typography.bodyLarge, typography.weightBold, { color: colors.success }]}>
+            Dompet Digital ({safeWallets.length} Akun)
+          </Text>
+          <Text style={[typography.caption, { color: colors.textSecondary }]}>E-WALLET & BANK</Text>
+        </View>
+
+        {safeWallets.length > 0 ? (
+          <View>
+            <View style={styles.statRow}>
+              <View>
+                <Text style={[typography.bodySmall, { color: colors.textSecondary }]}>Total Saldo</Text>
+                <Text style={[typography.h3, typography.weightBold, { color: colors.textPrimary }]}>
+                  {formatRupiah(totalWalletBalance)}
+                </Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={[typography.bodySmall, { color: colors.textSecondary }]}>Total Kepake</Text>
+                <Text style={[typography.h3, typography.weightBold, { color: colors.info }]}>
+                  {formatRupiah(totalWalletSpent)}
+                </Text>
+              </View>
+            </View>
+
+            <ProgressBar progress={walletProgress} color={colors.success} showPercentage />
+
+            <View style={styles.remainingRow}>
+              <Text style={[typography.bodyMedium, { color: colors.textSecondary }]}>Sisa Saldo Digital:</Text>
+              <Text
+                style={[
+                  typography.bodyLarge,
+                  typography.weightBold,
+                  { color: totalWalletRemaining >= 0 ? colors.success : colors.error },
+                ]}
+              >
+                {formatRupiah(totalWalletRemaining)}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.emptyCardState}>
+            <Text style={[typography.bodyMedium, { color: colors.textSecondary, marginBottom: 12 }]}>
+              Belum ada dompet digital (GoPay, ShopeePay, DANA, SeaBank, dll) yang dicatat.
+            </Text>
+            <Button
+              title="Atur Dompet Digital"
+              onPress={() => navigation.navigate('DigitalWallet')}
               variant="secondary"
             />
           </View>

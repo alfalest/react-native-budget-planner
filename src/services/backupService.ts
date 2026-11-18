@@ -36,6 +36,16 @@ export class BackupService {
         }
       }
 
+      // Validate digitalWallets schema if present (optional for backwards compatibility)
+      if (data.digitalWallets !== undefined) {
+        if (!Array.isArray(data.digitalWallets)) return false;
+        for (const wallet of data.digitalWallets) {
+          if (!wallet.id || !wallet.name || typeof wallet.balance !== 'number' || !Array.isArray(wallet.expenses)) {
+            return false;
+          }
+        }
+      }
+
       return true;
     } catch (e) {
       return false;

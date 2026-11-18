@@ -72,3 +72,28 @@ export interface Installment {
   startMonth: string; // YYYY-MM
   endMonth: string;   // YYYY-MM
 }
+
+export interface WalletIncome {
+  id: string;
+  walletId: string;
+  categoryName: string;
+  amount: number;
+  notes?: string;
+}
+
+export interface WalletExpense {
+  id: string;
+  walletId: string;
+  categoryName: string;
+  plannedAmount: number;
+  notes?: string;
+}
+
+export interface DigitalWallet {
+  id: string;
+  name: string; // e.g., GoPay, ShopeePay, DANA, SeaBank, Bank Jago
+  balance: number;
+  incomes?: WalletIncome[];
+  expenses: WalletExpense[];
+  updatedAt?: string;
+}

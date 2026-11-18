@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Category, MonthlyPlan, WeeklyPlan, Goal, MonthlyExpense, WeeklyExpense, Installment } from '../types';
+import { Category, MonthlyPlan, WeeklyPlan, Goal, MonthlyExpense, WeeklyExpense, Installment, DigitalWallet, WalletExpense, WalletIncome } from '../types';
 import { db } from '../database/sqlite';
 
 interface BudgetStoreState {
@@ -8,6 +8,8 @@ interface BudgetStoreState {
   weeklyPlans: WeeklyPlan[];
   goals: Goal[];
   installments: Installment[];
+  digitalWallets: DigitalWallet[];
+  isInitializing: boolean;
   isLoading: boolean;
   error: string | null;
 
@@ -34,6 +36,15 @@ interface BudgetStoreState {
   addInstallment: (name: string, amount: number, startMonth: string, endMonth: string) => Promise<void>;
   deleteInstallment: (id: string) => Promise<void>;
 
+  // Digital Wallet Actions
+  saveDigitalWallet: (
+    name: string,
+    balance: number,
+    expenses: Omit<WalletExpense, 'id' | 'walletId'>[],
+    incomes?: Omit<WalletIncome, 'id' | 'walletId'>[]
+  ) => Promise<string>;
+  deleteDigitalWallet: (id: string) => Promise<void>;
+
   // Backup & Import
   exportData: () => Promise<string>;
   importData: (jsonString: string) => Promise<boolean>;
@@ -45,11 +56,13 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
   weeklyPlans: [],
   goals: [],
   installments: [],
+  digitalWallets: [],
+  isInitializing: true,
   isLoading: false,
   error: null,
 
   initData: async () => {
-    set({ isLoading: true, error: null });
+    set({ isInitializing: true, isLoading: true, error: null });
     try {
       await db.init();
       const categories = await db.getCategories();
@@ -57,6 +70,7 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
       const weeklyPlans = await db.getWeeklyPlans();
       const goals = await db.getGoals();
       const installments = await db.getInstallments();
+      const digitalWallets = await db.getDigitalWallets();
 
       set({
         categories,
@@ -64,10 +78,12 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
         weeklyPlans,
         goals,
         installments,
+        digitalWallets,
+        isInitializing: false,
         isLoading: false
       });
     } catch (e: any) {
-      set({ error: e.message || 'Failed to initialize database', isLoading: false });
+      set({ error: e.message || 'Failed to initialize database', isInitializing: false, isLoading: false });
     }
   },
 
@@ -98,7 +114,8 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
       const monthlyPlans = await db.getMonthlyPlans();
       set({ monthlyPlans, isLoading: false });
     } catch (e: any) {
-      set({ error: e.message || 'Failed to save monthly plan', isLoading: false });
+      set({ isLoading: false });
+      throw e;
     }
   },
 
@@ -109,7 +126,8 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
       const monthlyPlans = await db.getMonthlyPlans();
       set({ monthlyPlans, isLoading: false });
     } catch (e: any) {
-      set({ error: e.message || 'Failed to delete monthly plan', isLoading: false });
+      set({ isLoading: false });
+      throw e;
     }
   },
 
@@ -139,7 +157,8 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
       const weeklyPlans = await db.getWeeklyPlans();
       set({ weeklyPlans, isLoading: false });
     } catch (e: any) {
-      set({ error: e.message || 'Failed to save weekly plan', isLoading: false });
+      set({ isLoading: false });
+      throw e;
     }
   },
 
@@ -150,7 +169,8 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
       const weeklyPlans = await db.getWeeklyPlans();
       set({ weeklyPlans, isLoading: false });
     } catch (e: any) {
-      set({ error: e.message || 'Failed to delete weekly plan', isLoading: false });
+      set({ isLoading: false });
+      throw e;
     }
   },
 
@@ -168,7 +188,8 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
       const goals = await db.getGoals();
       set({ goals, isLoading: false });
     } catch (e: any) {
-      set({ error: e.message || 'Failed to add goal', isLoading: false });
+      set({ isLoading: false });
+      throw e;
     }
   },
 
@@ -179,7 +200,8 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
       const goals = await db.getGoals();
       set({ goals, isLoading: false });
     } catch (e: any) {
-      set({ error: e.message || 'Failed to update goal', isLoading: false });
+      set({ isLoading: false });
+      throw e;
     }
   },
 
@@ -190,7 +212,8 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
       const goals = await db.getGoals();
       set({ goals, isLoading: false });
     } catch (e: any) {
-      set({ error: e.message || 'Failed to delete goal', isLoading: false });
+      set({ isLoading: false });
+      throw e;
     }
   },
 
@@ -208,7 +231,8 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
       const installments = await db.getInstallments();
       set({ installments, isLoading: false });
     } catch (e: any) {
-      set({ error: e.message || 'Failed to add installment', isLoading: false });
+      set({ isLoading: false });
+      throw e;
     }
   },
 
@@ -219,7 +243,64 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
       const installments = await db.getInstallments();
       set({ installments, isLoading: false });
     } catch (e: any) {
-      set({ error: e.message || 'Failed to delete installment', isLoading: false });
+      set({ isLoading: false });
+      throw e;
+    }
+  },
+
+  saveDigitalWallet: async (name, balance, rawExpenses, rawIncomes = []) => {
+    set({ isLoading: true });
+    try {
+      const cleanName = name.trim();
+      const existing = get().digitalWallets.find(
+        (w) => w.name.toLowerCase() === cleanName.toLowerCase()
+      );
+      const walletId = existing ? existing.id : `wallet-${Date.now()}`;
+
+      const incomes: WalletIncome[] = rawIncomes.map((inc, idx) => ({
+        id: existing?.incomes?.[idx]?.id || `wlt-inc-${Date.now()}-${idx}`,
+        walletId,
+        categoryName: inc.categoryName,
+        amount: inc.amount,
+        notes: inc.notes,
+      }));
+
+      const expenses: WalletExpense[] = rawExpenses.map((exp, idx) => ({
+        id: existing?.expenses[idx]?.id || `wlt-exp-${Date.now()}-${idx}`,
+        walletId,
+        categoryName: exp.categoryName,
+        plannedAmount: exp.plannedAmount,
+        notes: exp.notes,
+      }));
+
+      const wallet: DigitalWallet = {
+        id: walletId,
+        name: existing ? existing.name : cleanName,
+        balance,
+        incomes,
+        expenses,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await db.saveDigitalWallet(wallet);
+      const digitalWallets = await db.getDigitalWallets();
+      set({ digitalWallets, isLoading: false });
+      return wallet.name;
+    } catch (e: any) {
+      set({ isLoading: false });
+      throw e;
+    }
+  },
+
+  deleteDigitalWallet: async (id) => {
+    set({ isLoading: true });
+    try {
+      await db.deleteDigitalWallet(id);
+      const digitalWallets = await db.getDigitalWallets();
+      set({ digitalWallets, isLoading: false });
+    } catch (e: any) {
+      set({ isLoading: false });
+      throw e;
     }
   },
 
@@ -237,6 +318,7 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
         const weeklyPlans = await db.getWeeklyPlans();
         const goals = await db.getGoals();
         const installments = await db.getInstallments();
+        const digitalWallets = await db.getDigitalWallets();
 
         set({
           categories,
@@ -244,6 +326,7 @@ export const useBudgetStore = create<BudgetStoreState>((set, get) => ({
           weeklyPlans,
           goals,
           installments,
+          digitalWallets,
           isLoading: false,
           error: null
         });

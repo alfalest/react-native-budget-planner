@@ -1,4 +1,4 @@
-import { Category, MonthlyPlan, WeeklyPlan, Goal, Installment } from '../types';
+import { Category, MonthlyPlan, WeeklyPlan, Goal, Installment, DigitalWallet } from '../types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = '@money_planner_db';
@@ -16,6 +16,7 @@ class DBManager {
   private weeklyPlans: Map<string, WeeklyPlan> = new Map();
   private goals: Map<string, Goal> = new Map();
   private installments: Map<string, Installment> = new Map();
+  private digitalWallets: Map<string, DigitalWallet> = new Map();
   private isInitialized = false;
 
   async init(): Promise<void> {
@@ -125,13 +126,29 @@ class DBManager {
     await this._persistData();
   }
 
+  // --- DIGITAL WALLETS REPOSITORY ---
+  async getDigitalWallets(): Promise<DigitalWallet[]> {
+    return Array.from(this.digitalWallets.values());
+  }
+
+  async saveDigitalWallet(wallet: DigitalWallet): Promise<void> {
+    this.digitalWallets.set(wallet.id, wallet);
+    await this._persistData();
+  }
+
+  async deleteDigitalWallet(id: string): Promise<void> {
+    this.digitalWallets.delete(id);
+    await this._persistData();
+  }
+
   // --- BACKUP DATA WRAPPER ---
   async getDatabaseDump(): Promise<string> {
     const data = {
       monthlyPlans: Array.from(this.monthlyPlans.values()),
       weeklyPlans: Array.from(this.weeklyPlans.values()),
       goals: Array.from(this.goals.values()),
-      installments: Array.from(this.installments.values())
+      installments: Array.from(this.installments.values()),
+      digitalWallets: Array.from(this.digitalWallets.values())
     };
     return JSON.stringify(data, null, 2);
   }
@@ -149,12 +166,43 @@ class DBManager {
       this.weeklyPlans.clear();
       this.goals.clear();
       this.installments.clear();
+      this.digitalWallets.clear();
 
-      data.monthlyPlans.forEach((plan: MonthlyPlan) => this.monthlyPlans.set(plan.id, plan));
-      data.weeklyPlans.forEach((plan: WeeklyPlan) => this.weeklyPlans.set(plan.id, plan));
-      data.goals.forEach((goal: Goal) => this.goals.set(goal.id, goal));
-      if (data.installments) {
-        data.installments.forEach((inst: Installment) => this.installments.set(inst.id, inst));
+      data.monthlyPlans.forEach((plan: MonthlyPlan) => {
+        if (plan?.id && plan?.month) {
+          this.monthlyPlans.set(plan.id, {
+            ...plan,
+            expenses: Array.isArray(plan.expenses) ? plan.expenses : [],
+          });
+        }
+      });
+      data.weeklyPlans.forEach((plan: WeeklyPlan) => {
+        if (plan?.id && plan?.startDate && plan?.endDate) {
+          this.weeklyPlans.set(plan.id, {
+            ...plan,
+            expenses: Array.isArray(plan.expenses) ? plan.expenses : [],
+          });
+        }
+      });
+      data.goals.forEach((goal: Goal) => {
+        if (goal?.id) this.goals.set(goal.id, goal);
+      });
+      if (Array.isArray(data.installments)) {
+        data.installments.forEach((inst: Installment) => {
+          if (inst?.id) this.installments.set(inst.id, inst);
+        });
+      }
+      if (Array.isArray(data.digitalWallets)) {
+        data.digitalWallets.forEach((wallet: DigitalWallet) => {
+          if (wallet?.id && wallet?.name) {
+            this.digitalWallets.set(wallet.id, {
+              ...wallet,
+              balance: Number(wallet.balance) || 0,
+              incomes: Array.isArray(wallet.incomes) ? wallet.incomes : [],
+              expenses: Array.isArray(wallet.expenses) ? wallet.expenses : [],
+            });
+          }
+        });
       }
 
       await this._persistData(); // Ensure the newly imported data is saved!

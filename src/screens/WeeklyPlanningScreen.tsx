@@ -64,7 +64,9 @@ export const WeeklyPlanningScreen = () => {
 
   // Chronologically sorted history of saved weekly plans
   const sortedWeeklyPlans = useMemo(() => {
-    return [...weeklyPlans].sort((a, b) => b.startDate.localeCompare(a.startDate));
+    return (Array.isArray(weeklyPlans) ? weeklyPlans : [])
+      .filter((p) => Boolean(p?.startDate && p?.endDate))
+      .sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
   }, [weeklyPlans]);
 
   // Automatically switch to current week when screen is focused
@@ -93,11 +95,11 @@ export const WeeklyPlanningScreen = () => {
   // Load existing plan data
   useEffect(() => {
     if (activePlan) {
-      setIncomeInput(activePlan.income.toString());
+      setIncomeInput((activePlan.income ?? 0).toString());
       setExpenses(
-        activePlan.expenses.map((e) => ({
-          categoryName: e.categoryName,
-          plannedAmount: e.plannedAmount,
+        (Array.isArray(activePlan.expenses) ? activePlan.expenses : []).map((e) => ({
+          categoryName: e.categoryName || 'Pengeluaran',
+          plannedAmount: Number(e.plannedAmount) || 0,
           notes: e.notes || '',
         }))
       );
@@ -136,8 +138,9 @@ export const WeeklyPlanningScreen = () => {
 
   const monthlyIncome = activeMonthlyPlan?.income || 0;
   const monthlyExpensesTotal =
-    (activeMonthlyPlan?.expenses.reduce((sum, e) => sum + e.plannedAmount, 0) || 0) +
-    monthlyInstallmentsTotal;
+    (Array.isArray(activeMonthlyPlan?.expenses)
+      ? activeMonthlyPlan.expenses.reduce((sum, e) => sum + (Number(e.plannedAmount) || 0), 0)
+      : 0) + monthlyInstallmentsTotal;
   const monthlyUnallocated = monthlyIncome - monthlyExpensesTotal;
 
   // Base pool from monthly plan: if user still has unallocated monthly money, use that; otherwise fallback to monthly income
@@ -146,8 +149,8 @@ export const WeeklyPlanningScreen = () => {
     monthlyUnallocated > 0 ? 'Sisa Gaji Bulanan (Belum Diplot)' : 'Total Gaji Bulanan';
 
   // Calculate total weekly budgets across this month (including live edits on the active week)
-  const otherWeeksInMonth = weeklyPlans.filter(
-    (p) => p.startDate.startsWith(selectedMonth) && p.startDate !== currentWeek.startDate
+  const otherWeeksInMonth = (Array.isArray(weeklyPlans) ? weeklyPlans : []).filter(
+    (p) => Boolean(p?.startDate) && p.startDate.startsWith(selectedMonth) && p.startDate !== currentWeek.startDate
   );
   const otherWeeksIncomeTotal = otherWeeksInMonth.reduce((sum, p) => sum + p.income, 0);
   const monthTotalWeeklyIncome = otherWeeksIncomeTotal + income;
@@ -199,19 +202,15 @@ export const WeeklyPlanningScreen = () => {
   // Modify expense amounts and notes
   const handleAmountChange = (index: number, val: string) => {
     const numericVal = parseRupiah(val);
-    setExpenses((prev) => {
-      const updated = [...prev];
-      updated[index].plannedAmount = numericVal;
-      return updated;
-    });
+    setExpenses((prev) =>
+      prev.map((item, idx) => (idx === index ? { ...item, plannedAmount: numericVal } : item))
+    );
   };
 
   const handleNotesChange = (index: number, text: string) => {
-    setExpenses((prev) => {
-      const updated = [...prev];
-      updated[index].notes = text;
-      return updated;
-    });
+    setExpenses((prev) =>
+      prev.map((item, idx) => (idx === index ? { ...item, notes: text } : item))
+    );
   };
 
   // Delete row

@@ -10,7 +10,6 @@ export type TabParamList = {
   Dashboard: undefined;
   MonthlyPlan: undefined;
   WeeklyPlan: undefined;
-  Simulation: undefined;
+  DigitalWallet: undefined;
   Goals: undefined;
-  Calendar: undefined;
 };
